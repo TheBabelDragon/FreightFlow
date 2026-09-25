@@ -1,132 +1,127 @@
 # FreightFlow
 
-FreightFlow is a cross-distributor freight coordination and settlement layer built on MultiFlow, designed to connect physical transportation networks with contractual allocation and auditable financial settlement.
+**Status: Working v0.2 demonstrator**
+
+Cross-distributor freight coordination and settlement on MultiFlow.
+
+> Esri knows where freight can move.  
+> FreightFlow coordinates how multiple distributors can share that movement and settle the resulting cost.  
+> MultiFlow provides the admissibility/validation boundary.
+
+---
+
+## Quick start
+
+**Prerequisites:** Python 3.11+, Git
+
+```bash
+git clone https://github.com/TheBabelDragon/FreightFlow.git
+cd FreightFlow
+python -m venv .venv
+
+# Linux / macOS
+source .venv/bin/activate
+
+# Windows
+# .venv\Scripts\activate
+
+python -m pip install --upgrade pip
+python -m pip install pydantic pytest
+export PYTHONPATH=src          # Linux / macOS
+# set PYTHONPATH=src           # Windows cmd
+# $env:PYTHONPATH="src"        # Windows PowerShell
+
+python examples/shared_freight_demo.py
+python examples/conflict_demo.py
+pytest -q
+```
+
+Optional editable install (if `hatchling` is available):
+
+```bash
+python -m pip install -e ".[dev]"
+# then PYTHONPATH is not required
+```
+
+---
+
+## What the demo shows
+
+### Shared freight (happy path)
+
+Three distributors share one truck Dallas → Phoenix:
+
+| Participant | Pallets | Share | Cost |
+|-------------|---------|-------|------|
+| ACME        | 8       | 40%   | **$480** |
+| Babel       | 5       | 25%   | **$300** |
+| Desert      | 7       | 35%   | **$420** |
+| **Total**   | **20**  | **100%** | **$1,200** |
+
+Vehicle: **Truck-17** (20-pallet capacity) · Policy: **WEIGHT** · Ledger: **BALANCED**
+
+### Contract conflict (rejection)
+
+Babel requires exclusive carrier **C-22**. Proposed carrier is **TruckCo-17**.
+
+Result: **REJECTED** with code `CONTRACT-CARRIER-EXCLUSIVITY` — **no settlement, no ledger entries**.
+
+---
+
+## Architecture
 
 ```
               ARC GIS
                  │
-        network + geography
+        network + geography  (fixture in v0.2)
                  │
                  ▼
           ┌──────────────┐
-          │ FreightFlow  │
-          │              │
-          │ Contracts    │
-          │ Shipments    │
-          │ Vehicles     │
-          │ Economics    │
+          │ FreightFlow  │  shipments · contracts · vehicles · economics
           └──────┬───────┘
                  │
                  ▼
           ┌──────────────┐
-          │   MultiFlow  │
-          │              │
-          │ Propose      │
-          │ Validate     │
-          │ Explain      │
+          │   MultiFlow  │  propose · validate · explain (admissibility)
           └──────┬───────┘
                  │
                  ▼
           ┌──────────────┐
-          │   Settlement │
-          │              │
-          │ Allocation   │
-          │ Ledger       │
-          │ Audit trail  │
+          │  Settlement  │  allocation · ledger · audit trail
           └──────────────┘
 ```
 
-## Core Principle
+| Layer | Responsibility |
+|-------|----------------|
+| **ArcGIS** | Physical network / geography / routing. v0.2 uses a **deterministic fixture** (`source=fixture`). No live ArcGIS API calls. |
+| **FreightFlow** | Domain: shipments, contracts, vehicles, deterministic cost allocation, settlement. |
+| **MultiFlow** | Admissibility boundary. FreightFlow does **not** fork MultiFlow. |
+| **Ledger** | Append-only, balanced entries. Rejected allocations never post. |
 
-**FreightFlow supplies the domain model and translates it into a MultiFlow problem.**  
-**Never fork MultiFlow’s core logic.**
+**Not claimed in v0.2:** live ArcGIS routing, live carrier APIs, production TMS, blockchain, LLM optimization, payment rails.
 
-```
-FreightFlow
-     │
-     ▼
-MultiFlow
-```
+---
 
-MultiFlow validates the allocation. FreightFlow interprets the validated allocation commercially.
+## Deterministic money
 
-## Objective (v0.1)
-
-Given multiple distributors, their freight obligations, available vehicles, a shared transportation network, and contractual constraints, produce an **admissible shared-load allocation** and an **auditable financial settlement**.
-
-## Killer Demo Loop
+All amounts use `Decimal` (no float). Policy is recorded on every settlement.
 
 ```
-3 shipments
-      ↓
-1 shared truck
-      ↓
-MultiFlow validates
-      ↓
-cost allocation
-      ↓
-ledger
-      ↓
-auditable settlement
+total $1,200  →  WEIGHT basis  →  $480 + $300 + $420  =  $1,200
 ```
 
-### Example Output
+---
 
-```
-┌─────────────────────────────────────┐
-│ SHARED FREIGHT ALLOCATION           │
-├─────────────────────────────────────┤
-│ Route       Dallas → Phoenix        │
-│ Vehicle     Truck-17                │
-│ Capacity    20 pallets              │
-│ Utilization 100%                    │
-│                                     │
-│ ACME             8 pallets   $480   │
-│ Babel            5 pallets   $300   │
-│ Desert           7 pallets   $420   │
-│                                     │
-│ Total                       $1,200   │
-└─────────────────────────────────────┘
+## Key commands
 
-VALIDATED → SETTLED
+```bash
+python examples/shared_freight_demo.py   # $480 / $300 / $420, BALANCED
+python examples/conflict_demo.py         # CONTRACT-CARRIER-EXCLUSIVITY, no settlement
+pytest -q                                # full suite
 ```
 
-## Repository Layout
-
-```
-FreightFlow/
-├── src/freightflow/
-│   ├── domain/          # Distributor, Shipment, Vehicle, Contract, Allocation, Settlement
-│   ├── constraints/     # Capacity, contract, delivery, allocation validators
-│   ├── allocation/      # Load matcher, cost allocator, allocation engine
-│   ├── ledger/          # Append-only domain ledger + audit trail
-│   ├── adapters/        # MultiFlow + ArcGIS adapters
-│   └── api/
-├── examples/            # shared_freight_demo.py
-├── tests/
-└── docs/
-```
-
-## Deterministic Money
-
-Financial amounts are never invented by optimizers or LLMs.
-
-```
-total_transport_cost
-        ↓
-allocation basis (WEIGHT | VOLUME | WEIGHTED_COMPOSITE)
-        ↓
-participant shares
-        ↓
-exact monetary amounts
-```
-
-The allocation policy itself is recorded in the settlement and ledger.
-
-## Status
-
-Scaffolded for v0.1. Implementation order is documented in `docs/ARCHITECTURE.md`.
+---
 
 ## License
 
-See [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).

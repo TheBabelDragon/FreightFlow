@@ -16,8 +16,7 @@ def _shipments():
 
 
 def test_weight_proportional():
-    alloc = CostAllocator()
-    shares = alloc.allocate(_shipments(), Decimal("1200"), AllocationPolicy.WEIGHT_PROPORTIONAL)
+    shares = CostAllocator().allocate(_shipments(), Decimal("1200"), AllocationPolicy.WEIGHT)
     assert shares["A"] == Decimal("480.00")
     assert shares["B"] == Decimal("300.00")
     assert shares["C"] == Decimal("420.00")
@@ -25,8 +24,7 @@ def test_weight_proportional():
 
 
 def test_volume_proportional():
-    alloc = CostAllocator()
-    shares = alloc.allocate(_shipments(), Decimal("1200"), AllocationPolicy.VOLUME_PROPORTIONAL)
+    shares = CostAllocator().allocate(_shipments(), Decimal("1200"), AllocationPolicy.VOLUME)
     assert shares["A"] == Decimal("480.00")
     assert shares["B"] == Decimal("300.00")
     assert shares["C"] == Decimal("420.00")
@@ -35,6 +33,6 @@ def test_volume_proportional():
 def test_determinism():
     alloc = CostAllocator()
     s = _shipments()
-    a = alloc.allocate(s, Decimal("1200"), AllocationPolicy.WEIGHT_PROPORTIONAL)
-    b = alloc.allocate(s, Decimal("1200"), AllocationPolicy.WEIGHT_PROPORTIONAL)
+    a = alloc.allocate(s, Decimal("1200"), AllocationPolicy.WEIGHT)
+    b = alloc.allocate(s, Decimal("1200"), AllocationPolicy.WEIGHT)
     assert a == b

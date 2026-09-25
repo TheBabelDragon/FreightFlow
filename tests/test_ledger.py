@@ -18,4 +18,15 @@ def test_append_and_query():
     ledger.append(e)
     assert len(ledger.entries()) == 1
     assert ledger.for_participant("A")[0].debit == Decimal("100")
-    assert ledger.balance("A") == 100.0
+    assert ledger.balance("A") == Decimal("100")
+    assert ledger.is_balanced() is False
+
+    ledger.append(
+        LedgerEntry(
+            transaction_id="TX1",
+            participant="CARRIER",
+            account="freight_receivable",
+            credit=Decimal("100"),
+        )
+    )
+    assert ledger.is_balanced("TX1") is True

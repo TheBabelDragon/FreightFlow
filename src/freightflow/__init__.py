@@ -1,3 +1,6 @@
-"""FreightFlow: cross-distributor freight coordination and settlement on MultiFlow."""
+"""FreightFlow: cross-distributor freight coordination and settlement on MultiFlow.
 
-__version__ = "0.1.0"
+v0.2 — Esri-ready executable demonstrator.
+"""
+
+__version__ = "0.2.0"

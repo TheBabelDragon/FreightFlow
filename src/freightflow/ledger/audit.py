@@ -6,7 +6,7 @@ from freightflow.ledger.ledger import Ledger
 
 
 class AuditTrail:
-    """Answer: Why does participant X owe $Y?"""
+    """Answer: Why does participant X owe $Y? via ledger entries."""
 
     def __init__(self, ledger: Ledger) -> None:
         self.ledger = ledger
