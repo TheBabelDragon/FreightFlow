@@ -97,6 +97,7 @@
       <a href="#ledger">Ledger</a>
       <a href="#arcgis">ArcGIS</a>
       <a href="#conflict">Conflict</a>
+      <a href="#recovery">Recovery</a>
       <a href="#run">Run locally</a>
       <a href="https://github.com/TheBabelDragon/FreightFlow">GitHub</a>
       <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/README.md">README</a>
@@ -258,6 +259,24 @@ $1,200 reconciled settlement · ledger BALANCED</div>
       </div>
     </section>
 
+    <section id="recovery">
+      <h2>Recovery (planned)</h2>
+      <div class="card">
+        <p>
+          <strong>IMPLEMENTED:</strong> allocation → deterministic cost split → settlement → append-only ledger.
+          Rejected candidates never post.
+        </p>
+        <p style="margin-top:0.6rem">
+          <strong>PLANNED:</strong> recovery events for disputed allocations, partial payments, unreconciled carrier charges, and settlement exceptions.
+          Original settlements are never mutated; recovery appends new auditable events only.
+        </p>
+        <p class="meta" style="margin-top:0.6rem">
+          <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/docs/RECOVERY.md">docs/RECOVERY.md</a>
+          · Not a payment processor or collections system.
+        </p>
+      </div>
+    </section>
+
     <section id="run">
       <h2>Run the demonstrator locally</h2>
       <div class="run-box">
@@ -287,6 +306,7 @@ pytest -q</pre>
         <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/docs/ALLOCATION.md">Allocation</a>
         <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/docs/LEDGER.md">Ledger</a>
         <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/docs/ARCGIS.md">ArcGIS</a>
+        <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/docs/RECOVERY.md">Recovery</a>
         <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/README.md">README</a>
         <a href="https://github.com/TheBabelDragon/FreightFlow">Repository</a>
       </nav>
