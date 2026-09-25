@@ -1,3 +1,1 @@
-"""FreightFlow: cross-distributor freight coordination and settlement on MultiFlow."""
-
-__version__ = "0.1.0"
+"""FreightFlow: cross-distributor freight coordination and settlement on MultiFlow.\n\nv0.2 — Esri-ready executable demonstrator.\n"""\n\n__version__ = "0.2.0"\n
