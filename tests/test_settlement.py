@@ -20,7 +20,7 @@ def test_settlement_balances():
     vehicle = Vehicle(id="T17", carrier_id="TC", max_weight=Decimal("10000"), max_volume=Decimal("20"))
     engine = AllocationEngine()
     ok, allocations, _ = engine.propose_and_validate(
-        shipments, vehicle, total_cost=Decimal("1200"), policy=AllocationPolicy.WEIGHT_PROPORTIONAL
+        shipments, vehicle, total_cost=Decimal("1200"), policy=AllocationPolicy.WEIGHT
     )
     assert ok
 
@@ -31,10 +31,10 @@ def test_settlement_balances():
     assert settlement.participant_shares["A"] == Decimal("480.00")
     assert settlement.participant_shares["B"] == Decimal("300.00")
     assert settlement.participant_shares["C"] == Decimal("420.00")
-
-    assert ledger.balance("A") == 480.0
-    assert ledger.balance("B") == 300.0
-    assert ledger.balance("C") == 420.0
+    assert ledger.is_balanced(settlement.transaction_id)
+    assert ledger.balance("A") == Decimal("480.00")
+    assert ledger.balance("B") == Decimal("300.00")
+    assert ledger.balance("C") == Decimal("420.00")
 
     audit = AuditTrail(ledger)
     lines = audit.explain("B")

@@ -20,16 +20,17 @@ def test_happy_path_shared_load():
     truck = Vehicle(id="Truck-17", carrier_id="TruckCo-17", max_weight=Decimal("10000"), max_volume=Decimal("20"))
 
     engine = AllocationEngine()
-    ok, allocations, reason = engine.propose_and_validate(
-        shipments, truck, total_cost=Decimal("1200"), policy=AllocationPolicy.WEIGHT_PROPORTIONAL
+    ok, allocations, report = engine.propose_and_validate(
+        shipments, truck, total_cost=Decimal("1200"), policy=AllocationPolicy.WEIGHT
     )
     assert ok is True
-    assert reason is None
+    assert report.valid
     assert len(allocations) == 3
 
     ledger = Ledger()
     settlement = SettlementService(ledger).settle(allocations, shipments, truck.id, Decimal("1200"))
     assert sum(settlement.participant_shares.values()) == Decimal("1200.00")
+    assert ledger.is_balanced()
 
 
 def test_rejection_exclusive_carrier():
@@ -42,7 +43,7 @@ def test_rejection_exclusive_carrier():
     contract = Contract(id="B-119", distributor_id="Babel", carrier_id="C-22", exclusive_carrier=True)
 
     engine = AllocationEngine()
-    ok, allocations, reason = engine.propose_and_validate(
+    ok, allocations, report = engine.propose_and_validate(
         shipments,
         truck,
         contracts={"Babel": contract},
@@ -50,4 +51,4 @@ def test_rejection_exclusive_carrier():
     )
     assert ok is False
     assert allocations is None
-    assert "CONTRACT-CARRIER-EXCLUSIVITY" in reason
+    assert report.first_failure().code == "CONTRACT-CARRIER-EXCLUSIVITY"
