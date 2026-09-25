@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FreightFlow — Shared Freight Coordination & Settlement</title>
+  <meta name="description" content="Cross-distributor freight coordination and settlement layer built on MultiFlow. Admissible shared-load allocation with auditable financial settlement." />
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --surface: #12181f;
+      --border: #1e2833;
+      --text: #e8eef4;
+      --muted: #8b9aab;
+      --accent: #3dd6c3;
+      --accent-dim: #2a9d8f;
+      --warn: #f4a261;
+      --ok: #52b788;
+      --mono: "SF Mono", "Fira Code", "Consolas", monospace;
+      --sans: "Inter", system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2rem;
+      margin-bottom: 2.5rem;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent-dim);
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+    }
+    .tagline { color: var(--muted); font-size: 1.1rem; max-width: 36em; }
+    .cta {
+      display: inline-flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-block;
+      padding: 0.55rem 1.1rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border: 1px solid transparent;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #0b0f14;
+    }
+    .btn-primary:hover { background: #5eead4; text-decoration: none; }
+    .btn-ghost {
+      border-color: var(--border);
+      color: var(--text);
+    }
+    .btn-ghost:hover { border-color: var(--muted); text-decoration: none; }
+    section { margin-bottom: 2.75rem; }
+    h2 {
+      font-size: 1.15rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+    .diagram {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.45;
+      overflow-x: auto;
+      white-space: pre;
+      color: #c5d4e0;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.4rem;
+      margin-bottom: 1rem;
+    }
+    .card h3 { font-size: 1rem; margin-bottom: 0.4rem; }
+    .card p { color: var(--muted); font-size: 0.95rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+    .demo-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      padding: 1.25rem 1.4rem;
+      line-height: 1.5;
+    }
+    .demo-box .ok { color: var(--ok); }
+    .demo-box .warn { color: var(--warn); }
+    .demo-box .hl { color: var(--accent); }
+    ul.points { list-style: none; }
+    ul.points li {
+      padding: 0.45rem 0;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    ul.points li strong { color: var(--text); }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="badge">v0.1 · Launch</div>
+      <h1>FreightFlow</h1>
+      <p class="tagline">
+        Cross-distributor freight coordination and settlement layer built on MultiFlow.
+        Connect physical transportation networks with contractual allocation and auditable financial settlement.
+      </p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/TheBabelDragon/FreightFlow">View on GitHub</a>
+        <a class="btn btn-ghost" href="https://github.com/TheBabelDragon/FreightFlow/blob/main/examples/shared_freight_demo.py">Run the demo</a>
+      </div>
+    </header>
+
+    <section>
+      <h2>Architecture</h2>
+      <div class="diagram">              ARC GIS
+                 │
+        network + geography
+                 │
+                 ▼
+          ┌──────────────┐
+          │ FreightFlow  │
+          │ Contracts    │
+          │ Shipments    │
+          │ Vehicles     │
+          │ Economics    │
+          └──────┬───────┘
+                 │
+                 ▼
+          ┌──────────────┐
+          │   MultiFlow  │
+          │ Propose      │
+          │ Validate     │
+          │ Explain      │
+          └──────┬───────┘
+                 │
+                 ▼
+          ┌──────────────┐
+          │  Settlement  │
+          │ Allocation   │
+          │ Ledger       │
+          │ Audit trail  │
+          └──────────────┘</div>
+    </section>
+
+    <section>
+      <h2>Objective</h2>
+      <p style="color:var(--muted);max-width:40em">
+        Given multiple distributors, their freight obligations, available vehicles,
+        a shared transportation network, and contractual constraints — produce an
+        <strong style="color:var(--text)">admissible shared-load allocation</strong> and an
+        <strong style="color:var(--text)">auditable financial settlement</strong>.
+      </p>
+    </section>
+
+    <section>
+      <h2>Killer loop</h2>
+      <div class="demo-box">
+3 shipments
+      ↓
+1 shared truck
+      ↓
+MultiFlow validates
+      ↓
+cost allocation (deterministic)
+      ↓
+ledger
+      ↓
+<span class="ok">auditable settlement</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Demo output</h2>
+      <div class="demo-box">
+┌─────────────────────────────────────┐
+│ SHARED FREIGHT ALLOCATION           │
+├─────────────────────────────────────┤
+│ Route       Dallas → Phoenix        │
+│ Vehicle     Truck-17                │
+│ Capacity    20 pallets              │
+│ Utilization 100%                    │
+│                                     │
+│ ACME             8 pallets   $480   │
+│ Babel            5 pallets   $300   │
+│ Desert           7 pallets   $420   │
+│                                     │
+│ Total                       $1,200   │
+└─────────────────────────────────────┘
+
+<span class="ok">VALIDATED → SETTLED</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Principles</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Never fork MultiFlow</h3>
+          <p>FreightFlow supplies the domain model and translates it into a MultiFlow problem. MultiFlow validates; FreightFlow interprets commercially.</p>
+        </div>
+        <div class="card">
+          <h3>Deterministic money</h3>
+          <p>No LLM or optimizer invents financial numbers. Explicit allocation policies (weight, volume, composite) produce exact shares recorded on the settlement.</p>
+        </div>
+        <div class="card">
+          <h3>Explainable ledger</h3>
+          <p>Every charge answers: <em>Why does participant X owe $Y?</em> — contract + shipment + vehicle + policy + validated allocation.</p>
+        </div>
+        <div class="card">
+          <h3>Conflict is a feature</h3>
+          <p>Exclusive carrier, over-capacity, non-shareable freight — rejected with clear constraint codes. Generate → detect → explain.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Status</h2>
+      <ul class="points">
+        <li><strong>Domain models</strong> — Distributor, Shipment, Vehicle, Contract, Allocation, Settlement</li>
+        <li><strong>Validators</strong> — capacity, contract, delivery window, shareability</li>
+        <li><strong>Cost allocator</strong> — weight / volume / weighted composite</li>
+        <li><strong>Ledger + audit trail</strong> — append-only, balanced entries</li>
+        <li><strong>Adapters</strong> — MultiFlow + ArcGIS stubs</li>
+        <li><strong>Demo + tests</strong> — end-to-end happy path and rejection</li>
+      </ul>
+    </section>
+
+    <footer>
+      FreightFlow · Built on MultiFlow ·
+      <a href="https://github.com/TheBabelDragon/FreightFlow">github.com/TheBabelDragon/FreightFlow</a>
+    </footer>
+  </div>
+</body>
+</html>
