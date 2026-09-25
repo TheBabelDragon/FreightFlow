@@ -2,15 +2,18 @@
 
 **Status: Working v0.2 demonstrator**
 
-Cross-distributor freight coordination and settlement on MultiFlow.
+Cross-distributor freight **coordination and settlement** on MultiFlow.
+
+FreightFlow addresses a concrete operational problem: multiple distributors share capacity on the same physical move, need an admissible allocation under contracts and capacity, and need a deterministic, auditable split of cost—without forking the underlying network or solver stack.
 
 > Esri knows where freight can move.  
-> FreightFlow coordinates how multiple distributors can share that movement and settle the resulting cost.  
-> MultiFlow provides the admissibility/validation boundary.
+> FreightFlow coordinates who can share it.  
+> MultiFlow determines whether the allocation is admissible.  
+> The ledger records what each participant owes.
 
 **Launch page (GitHub Pages):** [https://thebabeldragon.github.io/FreightFlow/](https://thebabeldragon.github.io/FreightFlow/)
 
-Source HTML: [`docs/site/index.html`](docs/site/index.html) · Deployed by [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
+Source: [`docs/site/index.html`](docs/site/index.html) · Workflow: [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
 
 ---
 
@@ -40,20 +43,46 @@ python examples/conflict_demo.py
 pytest -q
 ```
 
-Optional editable install (if `hatchling` is available):
-
-```bash
-python -m pip install -e ".[dev]"
-# then PYTHONPATH is not required
-```
+Optional editable install (if `hatchling` is available): `python -m pip install -e ".[dev]"` (then `PYTHONPATH` is not required).
 
 ---
 
-## What the demo shows
+## What is implemented
+
+| Capability | Status |
+|------------|--------|
+| Shared-load coordination (shipments + vehicle + route) | **IMPLEMENTED** |
+| Domain constraints (capacity, contract, windows, shareability) | **IMPLEMENTED** |
+| MultiFlow validation boundary (admissibility / rejection codes) | **IMPLEMENTED** |
+| Deterministic cost allocation (`Decimal`, recorded policy) | **IMPLEMENTED** |
+| Settlement + balanced append-only ledger + explanations | **IMPLEMENTED** |
+| ArcGIS network fixture adapter | **IMPLEMENTED** |
+| Live ArcGIS routing, carrier APIs, TMS, payments | **Not implemented** |
+| Recovery / dispute / exception events | **PLANNED** — see [docs/RECOVERY.md](docs/RECOVERY.md) |
+
+---
+
+## Operational and financial chain
+
+```
+physical / operational state (network, capacity, contracts)
+        → allocation (shared load)
+        → deterministic cost split
+        → settlement
+        → append-only ledger / audit
+        → recovery events when exceptions occur   ← PLANNED
+```
+
+**Rule:** rejected allocations never create settlement or ledger entries.  
+**Rule (future recovery):** never mutate the original settlement; recovery is new auditable events only.
+
+---
+
+## Demonstrator results
 
 ### Shared freight (happy path)
 
-Three distributors share one truck Dallas → Phoenix:
+Three **participants** share one **load** Dallas → Phoenix on **Truck-17** (20-pallet capacity):
 
 | Participant | Pallets | Share | Cost |
 |-------------|---------|-------|------|
@@ -62,13 +91,13 @@ Three distributors share one truck Dallas → Phoenix:
 | Desert      | 7       | 35%   | **$420** |
 | **Total**   | **20**  | **100%** | **$1,200** |
 
-Vehicle: **Truck-17** (20-pallet capacity) · Policy: **WEIGHT** · Ledger: **BALANCED**
+Policy: **WEIGHT** · Validation: **VALID** · Ledger: **BALANCED**
 
 ### Contract conflict (rejection)
 
-Babel requires exclusive carrier **C-22**. Proposed carrier is **TruckCo-17**.
+Babel requires exclusive carrier **C-22**; proposed carrier is **TruckCo-17**.
 
-Result: **REJECTED** with code `CONTRACT-CARRIER-EXCLUSIVITY` — **no settlement, no ledger entries**.
+Result: **REJECTED** · code `CONTRACT-CARRIER-EXCLUSIVITY` · **no settlement, no ledger entries**
 
 ---
 
@@ -95,24 +124,22 @@ Result: **REJECTED** with code `CONTRACT-CARRIER-EXCLUSIVITY` — **no settlemen
           └──────────────┘
 ```
 
-| Layer | Responsibility |
-|-------|----------------|
-| **ArcGIS** | Physical network / geography / routing. v0.2 uses a **deterministic fixture** (`source=fixture`). No live ArcGIS API calls. |
-| **FreightFlow** | Domain: shipments, contracts, vehicles, deterministic cost allocation, settlement. |
-| **MultiFlow** | Admissibility boundary. FreightFlow does **not** fork MultiFlow. |
-| **Ledger** | Append-only, balanced entries. Rejected allocations never post. |
+FreightFlow is a **vertical domain layer**. It does **not** fork MultiFlow.  
+ArcGIS supplies network context; MultiFlow owns admissibility; FreightFlow owns commercial interpretation and settlement.
 
-**Not claimed in v0.2:** live ArcGIS routing, live carrier APIs, production TMS, blockchain, LLM optimization, payment rails.
+Why this can extend toward real-world freight/industrial coordination: the same boundaries separate geography, validation, economics, and (later) exception recovery without rewriting operational history.
 
 ---
 
-## Deterministic money
+## Documentation
 
-All amounts use `Decimal` (no float). Policy is recorded on every settlement.
-
-```
-total $1,200  →  WEIGHT basis  →  $480 + $300 + $420  =  $1,200
-```
+| Doc | Content |
+|-----|---------|
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | Stack, domain terms, status |
+| [ALLOCATION](docs/ALLOCATION.md) | Policies and allocation flow |
+| [LEDGER](docs/LEDGER.md) | Settlement, balance, explanations |
+| [ARCGIS](docs/ARCGIS.md) | Network adapter / fixture boundary |
+| [RECOVERY](docs/RECOVERY.md) | **PLANNED** recovery / exception model |
 
 ---
 
