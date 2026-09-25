@@ -1,4 +1,4 @@
-"""Constraint validators."""
+"""Constraint validators with structured ValidationResult."""
 
 from .capacity_constraints import CapacityValidator
 from .contract_constraints import ContractValidator
