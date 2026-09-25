@@ -3,130 +3,298 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FreightFlow v0.2 — Shared Freight Coordination &amp; Settlement</title>
-  <meta name="description" content="Esri-ready demonstrator: cross-distributor freight coordination on MultiFlow with auditable settlement." />
+  <title>FreightFlow — Shared freight coordination & settlement</title>
+  <meta name="description" content="FreightFlow: cross-distributor freight coordination on MultiFlow with deterministic allocation and auditable settlement. ArcGIS network · MultiFlow validation · ledger settlement." />
   <style>
     :root {
       --bg: #0b0f14; --surface: #12181f; --border: #1e2833;
       --text: #e8eef4; --muted: #8b9aab; --accent: #3dd6c3;
-      --ok: #52b788; --warn: #f4a261;
+      --ok: #52b788; --warn: #f4a261; --code: #c5d4e0;
       --mono: "SF Mono", "Fira Code", Consolas, monospace;
-      --sans: Inter, system-ui, sans-serif;
+      --sans: Inter, system-ui, -apple-system, sans-serif;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: var(--sans); background: var(--bg); color: var(--text); line-height: 1.6; }
     a { color: var(--accent); text-decoration: none; }
-    .wrap { max-width: 920px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
-    header { border-bottom: 1px solid var(--border); padding-bottom: 2rem; margin-bottom: 2.5rem; }
-    .badge { display: inline-block; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase;
-      color: var(--accent); border: 1px solid #2a9d8f; padding: 0.2rem 0.55rem; border-radius: 999px; margin-bottom: 1rem; }
-    h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 700; margin-bottom: 0.75rem; }
-    .tagline { color: var(--muted); font-size: 1.1rem; max-width: 38em; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    nav.top {
+      display: flex; flex-wrap: wrap; gap: 0.65rem 1.1rem; align-items: center;
+      padding-bottom: 1.25rem; margin-bottom: 1.75rem; border-bottom: 1px solid var(--border);
+      font-size: 0.88rem;
+    }
+    nav.top a { color: var(--muted); }
+    nav.top a:hover { color: var(--accent); text-decoration: none; }
+    nav.top .brand { color: var(--text); font-weight: 700; margin-right: 0.5rem; }
+    .badge {
+      display: inline-block; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--accent); border: 1px solid #2a9d8f; padding: 0.2rem 0.55rem; border-radius: 999px; margin-bottom: 1rem;
+    }
+    h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 700; margin-bottom: 0.6rem; }
+    .tagline { color: var(--muted); font-size: 1.05rem; max-width: 40em; margin-bottom: 0.35rem; }
+    .stack-line { color: var(--text); font-size: 0.95rem; max-width: 42em; margin-top: 0.85rem; }
     .cta { display: flex; gap: 0.75rem; margin-top: 1.5rem; flex-wrap: wrap; }
-    .btn { display: inline-block; padding: 0.55rem 1.1rem; border-radius: 6px; font-weight: 600; font-size: 0.95rem; }
+    .btn {
+      display: inline-block; padding: 0.55rem 1.15rem; border-radius: 6px;
+      font-weight: 600; font-size: 0.92rem; text-decoration: none;
+    }
+    .btn:hover { text-decoration: none; opacity: 0.92; }
     .btn-primary { background: var(--accent); color: #0b0f14; }
     .btn-ghost { border: 1px solid var(--border); color: var(--text); }
-    section { margin-bottom: 2.5rem; }
-    h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 1rem; }
-    .diagram, .demo-box {
+    section { margin-bottom: 2.4rem; }
+    h2 {
+      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.07em;
+      color: var(--muted); margin-bottom: 0.9rem;
+    }
+    .diagram, .demo-box, .flow {
       background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-      padding: 1.25rem 1.4rem; font-family: var(--mono); font-size: 0.78rem; line-height: 1.45;
-      overflow-x: auto; white-space: pre; color: #c5d4e0;
+      padding: 1.15rem 1.35rem; font-family: var(--mono); font-size: 0.78rem;
+      line-height: 1.45; overflow-x: auto; white-space: pre; color: var(--code);
     }
     .ok { color: var(--ok); } .warn { color: var(--warn); }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.15rem 1.25rem;
+    }
     .card h3 { font-size: 1rem; margin-bottom: 0.4rem; }
-    .card p { color: var(--muted); font-size: 0.92rem; }
-    footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85rem; }
+    .card p { color: var(--muted); font-size: 0.9rem; }
+    .card ul { color: var(--muted); font-size: 0.88rem; margin-top: 0.5rem; padding-left: 1.1rem; }
+    .card code { font-family: var(--mono); font-size: 0.82rem; color: var(--code); }
+    table.settlement {
+      width: 100%; border-collapse: collapse; font-size: 0.92rem;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    }
+    table.settlement th, table.settlement td {
+      text-align: left; padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--border);
+    }
+    table.settlement th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    table.settlement tr:last-child td { border-bottom: none; font-weight: 600; }
+    .meta { color: var(--muted); font-size: 0.88rem; margin-top: 0.75rem; }
+    .run-box {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1.15rem 1.35rem; font-size: 0.9rem;
+    }
+    .run-box pre {
+      font-family: var(--mono); font-size: 0.78rem; color: var(--code);
+      margin-top: 0.75rem; white-space: pre-wrap; line-height: 1.5;
+    }
+    .docs-nav {
+      display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.9rem;
+    }
+    footer {
+      margin-top: 2.5rem; padding-top: 1.4rem; border-top: 1px solid var(--border);
+      color: var(--muted); font-size: 0.85rem;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
+    <nav class="top" aria-label="Primary">
+      <a class="brand" href="./">FreightFlow</a>
+      <a href="#demo">Demo</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#allocation">Allocation</a>
+      <a href="#ledger">Ledger</a>
+      <a href="#arcgis">ArcGIS</a>
+      <a href="#conflict">Conflict</a>
+      <a href="#run">Run locally</a>
+      <a href="https://github.com/TheBabelDragon/FreightFlow">GitHub</a>
+      <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/README.md">README</a>
+    </nav>
+
     <header>
-      <div class="badge">v0.2 · Esri-ready demonstrator</div>
+      <div class="badge">v0.2 · Working demonstrator</div>
       <h1>FreightFlow</h1>
       <p class="tagline">
-        ArcGIS knows where freight can move. FreightFlow coordinates who can share it.
-        MultiFlow determines whether the allocation is admissible. The ledger records what each participant owes.
+        Shared freight coordination with deterministic validation, allocation, and settlement.
+      </p>
+      <p class="stack-line">
+        <strong>ArcGIS</strong> provides the physical network.
+        <strong>FreightFlow</strong> coordinates freight across participants.
+        <strong>MultiFlow</strong> validates whether proposed allocations are admissible.
+        The <strong>ledger</strong> records the resulting settlement.
       </p>
       <div class="cta">
-        <a class="btn btn-primary" href="https://github.com/TheBabelDragon/FreightFlow">GitHub</a>
-        <a class="btn btn-ghost" href="https://github.com/TheBabelDragon/FreightFlow/blob/feat/esri-freightflow-v02/examples/shared_freight_demo.py">Shared-load demo</a>
-        <a class="btn btn-ghost" href="https://github.com/TheBabelDragon/FreightFlow/blob/feat/esri-freightflow-v02/examples/conflict_demo.py">Conflict demo</a>
+        <a class="btn btn-primary" href="#demo">Explore the demo</a>
+        <a class="btn btn-ghost" href="https://github.com/TheBabelDragon/FreightFlow">GitHub repository</a>
+        <a class="btn btn-ghost" href="#run">Run locally</a>
       </div>
     </header>
 
-    <section>
-      <h2>Live demo</h2>
+    <section id="demo">
+      <h2>Deterministic demonstrator result</h2>
+      <p class="meta" style="margin-bottom:0.75rem">
+        Values below are from the checked-in shared-load demo (not live market data).
+        Route: Dallas → Phoenix · Vehicle: Truck-17 · Capacity: 20 pallets · Policy: WEIGHT
+      </p>
+      <table class="settlement">
+        <thead>
+          <tr><th>Participant</th><th>Pallets</th><th>Share</th><th>Cost</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>ACME</td><td>8</td><td>40%</td><td>$480</td></tr>
+          <tr><td>Babel</td><td>5</td><td>25%</td><td>$300</td></tr>
+          <tr><td>Desert</td><td>7</td><td>35%</td><td>$420</td></tr>
+          <tr><td>Total</td><td>20</td><td>100%</td><td>$1,200</td></tr>
+        </tbody>
+      </table>
+      <div class="demo-box" style="margin-top:1rem">3 distributors
+      ↓
+1 shared truck
+      ↓
+MultiFlow validation
+      ↓
+deterministic allocation
+      ↓
+$480 / $300 / $420
+      ↓
+$1,200 reconciled settlement · ledger BALANCED</div>
+      <p class="meta">
+        Source:
+        <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/examples/shared_freight_demo.py">examples/shared_freight_demo.py</a>
+        ·
+        <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/examples/data/reference_scenario.py">reference scenario</a>
+      </p>
+    </section>
+
+    <section id="conflict">
+      <h2>Contract conflict path</h2>
       <div class="grid">
         <div class="card">
-          <h3 class="ok">Successful allocation</h3>
-          <p>3 distributors · 1 truck · 20 pallets · $1,200 freight · validated · settled · ledger balanced</p>
+          <h3 class="warn">REJECTED allocation</h3>
+          <p>
+            Babel requires exclusive carrier <code>C-22</code>.
+            Proposed carrier: <code>TruckCo-17</code> (Truck-17).
+          </p>
+          <ul>
+            <li>Code: <code>CONTRACT-CARRIER-EXCLUSIVITY</code></li>
+            <li>Machine-readable explanation returned</li>
+            <li><strong>No settlement entries created</strong></li>
+          </ul>
+          <p style="margin-top:0.6rem">
+            <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/examples/conflict_demo.py">examples/conflict_demo.py</a>
+          </p>
         </div>
         <div class="card">
-          <h3 class="warn">Conflict demo</h3>
-          <p>Incompatible carrier contract · REJECTED · machine-readable explanation · no settlement posted</p>
+          <h3 class="ok">Invariant</h3>
+          <p>
+            Proposed allocations are not automatically accepted.
+            MultiFlow (admissibility boundary) + FreightFlow domain constraints must validate first.
+            Rejected candidates never post to the ledger.
+          </p>
         </div>
       </div>
     </section>
 
-    <section>
+    <section id="architecture">
       <h2>Architecture</h2>
       <div class="diagram">              ARC GIS
                  │
-        network + geography
+        network + geography  (fixture in v0.2)
                  │
                  ▼
           ┌──────────────┐
-          │ FreightFlow  │
-          │ Contracts · Shipments · Vehicles · Economics
+          │ FreightFlow  │  contracts · shipments · vehicles · economics
           └──────┬───────┘
                  │
                  ▼
           ┌──────────────┐
-          │   MultiFlow  │
-          │ Propose · Validate · Explain
+          │   MultiFlow  │  propose · validate · explain (admissibility)
           └──────┬───────┘
                  │
                  ▼
           ┌──────────────┐
-          │  Settlement  │
-          │ Allocation · Ledger · Audit trail
+          │  Settlement  │  allocation · ledger · audit trail
           └──────────────┘</div>
-    </section>
-
-    <section>
-      <h2>Reference output</h2>
-      <div class="demo-box">FREIGHTFLOW SHARED LOAD
-========================================
-Route:       Dallas → Phoenix
-Vehicle:     Truck-17
-Capacity:    20 pallets
-Utilization: 100%
-
-ACME          8 pallets     $480.00
-Babel         5 pallets     $300.00
-Desert        7 pallets     $420.00
-Transport cost:             $1200.00
-
-<span class="ok">MultiFlow validation:  VALID
-Settlement:            POSTED
-Ledger:                BALANCED</span></div>
-    </section>
-
-    <section>
-      <h2>ArcGIS adapter status</h2>
-      <p style="color:var(--muted);font-size:0.95rem;max-width:40em">
-        Integration boundary is implemented via <code>NetworkRoute</code> and <code>ArcGISAdapter</code>.
-        v0.2 uses a checked-in deterministic fixture (Dallas → Phoenix).
-        <strong style="color:var(--text)">Live ArcGIS routing is not performed and is not claimed.</strong>
-        The adapter is the documented entry point for real service responses.
+      <p class="meta">
+        FreightFlow is a vertical domain layer. It does <strong>not</strong> fork MultiFlow.
+        Docs:
+        <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/docs/ARCHITECTURE.md">ARCHITECTURE.md</a>
       </p>
     </section>
 
+    <section id="allocation">
+      <h2>Allocation</h2>
+      <div class="card">
+        <p>
+          Deterministic cost shares from a recorded policy (WEIGHT | VOLUME | WEIGHTED_COMPOSITE).
+          Money uses <code>Decimal</code> — no float arithmetic.
+          Reference: 8/5/7 pallets → 40% / 25% / 35% of $1,200 → $480 / $300 / $420.
+        </p>
+        <p class="meta" style="margin-top:0.6rem">
+          <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/docs/ALLOCATION.md">docs/ALLOCATION.md</a>
+        </p>
+      </div>
+    </section>
+
+    <section id="ledger">
+      <h2>Ledger / settlement</h2>
+      <div class="card">
+        <p>
+          Append-only domain ledger. Successful allocations post balanced entries and an explanation chain
+          (what was allocated, which validation authorized it, how each share was computed).
+          Rejected allocations leave the ledger unchanged.
+        </p>
+        <p class="meta" style="margin-top:0.6rem">
+          <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/docs/LEDGER.md">docs/LEDGER.md</a>
+        </p>
+      </div>
+    </section>
+
+    <section id="arcgis">
+      <h2>ArcGIS integration</h2>
+      <div class="card">
+        <p>
+          Boundary object: <code>NetworkRoute</code> via <code>ArcGISAdapter</code>.
+          <strong>v0.2 uses a deterministic fixture</strong> (Dallas → Phoenix, <code>source=fixture</code>).
+          Live ArcGIS routing is <em>not</em> performed and is not claimed.
+          The adapter is the entry point for real service responses later.
+        </p>
+        <p class="meta" style="margin-top:0.6rem">
+          <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/docs/ARCGIS.md">docs/ARCGIS.md</a>
+          ·
+          <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/src/freightflow/adapters/arcgis.py">adapters/arcgis.py</a>
+        </p>
+      </div>
+    </section>
+
+    <section id="run">
+      <h2>Run the demonstrator locally</h2>
+      <div class="run-box">
+        <p>This site does not execute the Python demo in the browser. Clone and run:</p>
+<pre>git clone https://github.com/TheBabelDragon/FreightFlow.git
+cd FreightFlow
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+python -m pip install --upgrade pip
+python -m pip install pydantic pytest
+export PYTHONPATH=src              # Windows cmd: set PYTHONPATH=src
+
+python examples/shared_freight_demo.py
+python examples/conflict_demo.py
+pytest -q</pre>
+        <p class="meta" style="margin-top:0.75rem">
+          Full instructions:
+          <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/README.md">README.md</a>
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Documentation</h2>
+      <nav class="docs-nav">
+        <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/docs/ARCHITECTURE.md">Architecture</a>
+        <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/docs/ALLOCATION.md">Allocation</a>
+        <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/docs/LEDGER.md">Ledger</a>
+        <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/docs/ARCGIS.md">ArcGIS</a>
+        <a href="https://github.com/TheBabelDragon/FreightFlow/blob/main/README.md">README</a>
+        <a href="https://github.com/TheBabelDragon/FreightFlow">Repository</a>
+      </nav>
+    </section>
+
     <footer>
-      FreightFlow v0.2 · Built on MultiFlow ·
+      FreightFlow v0.2 · Vertical layer on MultiFlow ·
+      ArcGIS network fixture · Deterministic settlement ·
       <a href="https://github.com/TheBabelDragon/FreightFlow">github.com/TheBabelDragon/FreightFlow</a>
     </footer>
   </div>
