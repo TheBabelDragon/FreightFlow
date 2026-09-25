@@ -8,6 +8,10 @@ Cross-distributor freight coordination and settlement on MultiFlow.
 > FreightFlow coordinates how multiple distributors can share that movement and settle the resulting cost.  
 > MultiFlow provides the admissibility/validation boundary.
 
+**Launch page (GitHub Pages):** [https://thebabeldragon.github.io/FreightFlow/](https://thebabeldragon.github.io/FreightFlow/)
+
+Source HTML: [`docs/site/index.html`](docs/site/index.html) · Deployed by [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
+
 ---
 
 ## Quick start
