@@ -1,163 +1,119 @@
 #!/usr/bin/env python3
-"""End-to-end shared freight demo.
+"""FreightFlow v0.2 \u2014 shared-load reference demo (Esri-ready).
 
-Three distributors, one truck, Dallas → Phoenix, full utilization,
-deterministic cost allocation, ledger settlement, and a rejection case.
+3 distributors \u2192 1 shared truck \u2192 validated \u2192 settled \u2192 balanced ledger.
 """
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from decimal import Decimal
 
-from freightflow.domain.distributor import Distributor
-from freightflow.domain.shipment import Shipment
-from freightflow.domain.vehicle import Vehicle
-from freightflow.domain.contract import Contract
+from data.reference_scenario import (
+    SHIPMENTS,
+    VEHICLE,
+    CONTRACTS,
+    NETWORK_ROUTE,
+    TOTAL_TRANSPORT_COST,
+    DISTRIBUTOR_NAMES,
+)
 from freightflow.domain.allocation import AllocationPolicy
 from freightflow.allocation.allocation_engine import AllocationEngine
+from freightflow.adapters.multiflow import MultiFlowAdapter
+from freightflow.adapters.arcgis import ArcGISAdapter
 from freightflow.ledger.ledger import Ledger
 from freightflow.ledger.settlement import SettlementService
-from freightflow.ledger.audit import AuditTrail
-from freightflow.adapters.arcgis import ArcGISAdapter
 
 
-def main() -> None:
-    print("=" * 60)
-    print("FREIGHTFLOW SHARED-LOAD DEMO")
-    print("=" * 60)
+def main() -> int:
+    print("FREIGHTFLOW SHARED LOAD")
+    print("=" * 40)
 
-    # --- Participants ---
-    acme = Distributor(id="D-ACME", name="ACME Distribution")
-    babel = Distributor(id="D-BABEL", name="Babel Supply")
-    desert = Distributor(id="D-DESERT", name="Desert Wholesale")
-
-    # --- Shipments (Dallas → Phoenix) ---
-    shipments = [
-        Shipment(
-            id="S-ACME-001",
-            distributor_id=acme.id,
-            origin="Dallas",
-            destination="Phoenix",
-            weight=Decimal("800"),
-            volume=Decimal("8"),  # pallets
-        ),
-        Shipment(
-            id="S-BABEL-004",
-            distributor_id=babel.id,
-            origin="Dallas",
-            destination="Phoenix",
-            weight=Decimal("500"),
-            volume=Decimal("5"),
-        ),
-        Shipment(
-            id="S-DESERT-007",
-            distributor_id=desert.id,
-            origin="Dallas",
-            destination="Phoenix",
-            weight=Decimal("700"),
-            volume=Decimal("7"),
-        ),
-    ]
-
-    # --- Vehicle ---
-    truck = Vehicle(
-        id="Truck-17",
-        carrier_id="TruckCo-17",
-        max_weight=Decimal("10000"),
-        max_volume=Decimal("20"),  # 20 pallets
-        origin="Dallas",
-    )
-
-    total_cost = Decimal("1200.00")
-
-    # --- Route (ArcGIS stub) ---
     arcgis = ArcGISAdapter()
-    route = arcgis.route_from_network(
-        origin="Dallas",
-        destination="Phoenix",
-        distance=Decimal("887"),
-        travel_time_hours=Decimal("13.5"),
-    )
+    route = NETWORK_ROUTE
+    assert route.source == "fixture"
+    print(f"Route:       {route.origin} \u2192 {route.destination}")
+    print(f"  (network source: {route.source}, id: {route.id})")
+    print(f"  distance: {route.distance} mi, travel: {route.travel_time_hours} h")
 
-    # --- Happy path: shared load ---
+    vehicle = VEHICLE
+    shipments = list(SHIPMENTS)
+    total_cost = TOTAL_TRANSPORT_COST
+    policy = AllocationPolicy.WEIGHT
+
+    print(f"Vehicle:     {vehicle.id}")
+    print(f"Capacity:    {vehicle.max_volume} pallets")
+    total_vol = sum(s.volume for s in shipments)
+    util = (total_vol / vehicle.max_volume * 100).quantize(Decimal("1"))
+    print(f"Utilization: {util}%")
+    print()
+
+    mf = MultiFlowAdapter()
+    report = mf.validate(shipments, vehicle, CONTRACTS)
+    if not report.valid:
+        fail = report.first_failure()
+        print("MultiFlow validation: REJECTED")
+        print(f"  Code: {fail.code if fail else 'UNKNOWN'}")
+        print(f"  {fail.message if fail else ''}")
+        return 1
+
     engine = AllocationEngine()
-    ok, allocations, reason = engine.propose_and_validate(
+    ok, allocations, report = engine.propose_and_validate(
         shipments=shipments,
-        vehicle=truck,
+        vehicle=vehicle,
+        contracts=CONTRACTS,
         total_cost=total_cost,
-        policy=AllocationPolicy.WEIGHT_PROPORTIONAL,
+        policy=policy,
         route_id=route.id,
     )
+    assert ok and allocations
 
-    if not ok:
-        print(f"REJECTED: {reason}")
-        return
-
-    print("\n┌─────────────────────────────────────┐")
-    print("│ SHARED FREIGHT ALLOCATION           │")
-    print("├─────────────────────────────────────┤")
-    print(f"│ Route       {route.origin} → {route.destination}")
-    print(f"│ Vehicle     {truck.id}")
-    print(f"│ Capacity    {truck.max_volume} pallets")
-    print(f"│ Utilization 100%")
-    print("│                                     │")
     for a in allocations:
         s = next(x for x in shipments if x.id == a.shipment_id)
-        name = {"D-ACME": "ACME", "D-BABEL": "Babel", "D-DESERT": "Desert"}[s.distributor_id]
-        print(f"│ {name:<14} {a.allocated_volume:>2} pallets   ${a.cost_share}")
-    print("│                                     │")
-    print(f"│ Total                       ${total_cost}")
-    print("└─────────────────────────────────────┘")
-    print("\nVALIDATED")
+        name = DISTRIBUTOR_NAMES.get(s.distributor_id, s.distributor_id)
+        print(f"{name:<12} {a.allocated_volume:>2} pallets     ${a.cost_share}")
+    print(f"{'Transport cost:':<24} ${total_cost}")
+    print()
+    print(f"MultiFlow validation:  VALID")
+    print(f"Allocation policy:     {policy.value}")
 
-    # --- Settle ---
     ledger = Ledger()
-    settlement_svc = SettlementService(ledger)
-    settlement = settlement_svc.settle(
+    svc = SettlementService(ledger)
+    settlement = svc.settle(
         allocations=allocations,
         shipments=shipments,
-        vehicle_id=truck.id,
+        vehicle_id=vehicle.id,
         total_cost=total_cost,
-    )
-    print("SETTLED")
-    print(f"  Settlement ID: {settlement.id}")
-    print(f"  Policy:        {settlement.policy}")
-
-    # --- Audit ---
-    audit = AuditTrail(ledger)
-    print("\n--- Audit: Why does Babel owe $300? ---")
-    for line in audit.explain("D-BABEL"):
-        print(f"  {line}")
-
-    # --- Rejection demo: exclusive carrier ---
-    print("\n" + "=" * 60)
-    print("CONFLICT DEMO: exclusive carrier requirement")
-    print("=" * 60)
-
-    exclusive_contract = Contract(
-        id="B-119",
-        distributor_id=babel.id,
-        carrier_id="C-22",
-        exclusive_carrier=True,
-    )
-
-    ok2, _, reason2 = engine.propose_and_validate(
-        shipments=shipments,
-        vehicle=truck,
-        contracts={babel.id: exclusive_contract},
-        total_cost=total_cost,
-        policy=AllocationPolicy.WEIGHT_PROPORTIONAL,
         route_id=route.id,
     )
+    recon = settlement.reconciliation()
+    print(f"Settlement:            {settlement.status.value}")
+    print(f"Ledger:                {'BALANCED' if ledger.is_balanced(settlement.transaction_id) else 'UNBALANCED'}")
+    print(f"Settlement ID:         {settlement.id}")
+    print(f"Transaction ID:        {settlement.transaction_id}")
+    print(f"Reconciliation:        sum={recon['sum_of_shares']} balanced={recon['balanced']}")
+    print()
 
-    if not ok2:
-        print(f"\nAllocation REJECTED.")
-        print(f"Reason: {reason2}")
-        print("Affected participant: Babel Supply")
-        print("Constraint: CONTRACT-CARRIER-EXCLUSIVITY")
-    else:
-        print("Unexpected: should have been rejected")
+    expl = svc.explain(
+        settlement=settlement,
+        participant_id="D-BABEL",
+        shipments=shipments,
+        allocations=allocations,
+        route_origin=route.origin,
+        route_destination=route.destination,
+        participant_name="Babel Supply",
+    )
+    print("--- Why does Babel owe $300? ---")
+    for line in expl.to_lines():
+        print(f"  {line}")
+
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
