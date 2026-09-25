@@ -1,6 +1,15 @@
 # Architecture
 
-## Core Rule
+## Positioning
+
+```
+ArcGIS knows where freight can move.
+FreightFlow coordinates who can share it.
+MultiFlow determines whether the allocation is admissible.
+The ledger records what each participant owes.
+```
+
+## Core rule
 
 ```
 FreightFlow
@@ -11,91 +20,32 @@ MultiFlow
 
 FreightFlow never forks MultiFlow’s solver core. It supplies the domain model and translates it into a MultiFlow problem. MultiFlow validates; FreightFlow interprets commercially.
 
-## Domain Model (v0.1)
+## Domain (v0.2)
 
-### Distributor
-- id, name, contracts
+- **Distributor** — id, name, contracts
+- **Shipment** — id, distributor, origin/destination, weight, volume, windows, shareable
+- **Vehicle** — id, carrier, capacity, availability, origin
+- **Contract** — carrier restrictions, exclusivity, origins/destinations
+- **Allocation** — shipment↔vehicle binding with cost_share (Decimal), policy
+- **Settlement** — participant_shares, policy, reconciliation, status
+- **NetworkRoute** — ArcGIS/fixture boundary object
+- **Money** — Decimal amount + currency (no float)
+- **ValidationResult** — valid, code, message, affected_entities
 
-### Shipment
-- id, distributor_id, origin, destination
-- weight, volume
-- earliest_pickup, latest_delivery
-- required_service, shareable
+## Constraint codes (stable)
 
-### Vehicle
-- id, carrier_id
-- max_weight, max_volume
-- available_from, available_until, origin
+| Code | Meaning |
+|------|---------|
+| CAPACITY-OVERFLOW | Weight or volume exceeds vehicle |
+| DELIVERY-WINDOW | Pickup/delivery outside allowed window |
+| CONTRACT-CARRIER-EXCLUSIVITY | Carrier not permitted by contract |
+| SHIPMENT-NOT-SHAREABLE | Non-shareable freight co-loaded |
+| ALLOCATION-INCOMPLETE | Required shipments missing from allocation |
 
-### Contract
-- id, distributor_id, carrier_id
-- origin/destination constraints
-- service_requirements, rate_model
-- capacity_commitment, penalties
+## Money
 
-### Allocation (central object)
-- shipment_id, vehicle_id, route_id
-- allocated_weight, allocated_volume
-- cost_share, contract_basis
+All financial amounts use `Decimal`. Float is rejected at validation boundaries. Cost policies: WEIGHT, VOLUME, WEIGHTED_COMPOSITE. `sum(shares) == total_cost` is guaranteed; remainder assigned deterministically.
 
-## Deterministic Cost Allocation
+## ArcGIS boundary
 
-```
-total_transport_cost
-        ↓
-allocation basis
-        ↓
-participant shares
-        ↓
-exact monetary amounts
-```
-
-Supported bases:
-- WEIGHT_PROPORTIONAL
-- VOLUME_PROPORTIONAL
-- WEIGHTED_COMPOSITE
-
-Policy is recorded on the settlement record.
-
-## Ledger
-
-Append-only domain ledger (not blockchain).
-
-Each entry answers: *Why does participant X owe $Y?*
-
-Explanatory chain includes contract, shipment, vehicle, allocation policy, validated allocation id, and transport cost.
-
-## MultiFlow Integration
-
-FreightFlow → MultiFlow problem translation.
-MultiFlow → candidate generation → independent validation → admissible allocation.
-FreightFlow → commercial interpretation of validated allocation.
-
-## Implementation Order
-
-01. Repository scaffold  
-02. Domain objects  
-03. Deterministic money types  
-04. Contract model  
-05. Shipment model  
-06. Vehicle model  
-07. Allocation model  
-08. Cost-allocation engine  
-09. Ledger  
-10. MultiFlow adapter  
-11. Capacity validator  
-12. Contract validator  
-13. Time-window validator  
-14. Shared-load engine  
-15. End-to-end 3-distributor demo  
-16. Rejection / explanation demo  
-17. Event stream  
-18. Deterministic replay  
-19. ArcGIS adapter  
-20. ArcGIS visualization  
-21. Alternative candidate generation  
-22. Financial reconciliation  
-23. API / UI  
-24. Transformer proposal adapter  
-
-**Do not start with UI or Esri.** Solidify the 3-shipment → 1-truck → validate → settle loop first.
+`ArcGISAdapter.from_network_result` is the single entry point. Fixture data uses `source="fixture"`. Live ArcGIS is not required for tests or demos.

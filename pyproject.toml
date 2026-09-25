@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "freightflow"
-version = "0.1.0"
+version = "0.2.0"
 description = "Cross-distributor freight coordination and settlement layer built on MultiFlow"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -14,7 +14,7 @@ authors = [
 ]
 keywords = ["freight", "logistics", "allocation", "settlement", "multiflow"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",

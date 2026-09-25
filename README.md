@@ -1,6 +1,15 @@
 # FreightFlow
 
-FreightFlow is a cross-distributor freight coordination and settlement layer built on MultiFlow, designed to connect physical transportation networks with contractual allocation and auditable financial settlement.
+**v0.2 — Esri-ready demonstrator**
+
+FreightFlow is a cross-distributor freight coordination and settlement layer built on MultiFlow. It connects physical transportation networks with contractual allocation and auditable financial settlement.
+
+```
+ArcGIS knows where freight can move.
+FreightFlow coordinates who can share it.
+MultiFlow determines whether the allocation is admissible.
+The ledger records what each participant owes.
+```
 
 ```
               ARC GIS
@@ -10,7 +19,6 @@ FreightFlow is a cross-distributor freight coordination and settlement layer bui
                  ▼
           ┌──────────────┐
           │ FreightFlow  │
-          │              │
           │ Contracts    │
           │ Shipments    │
           │ Vehicles     │
@@ -20,7 +28,6 @@ FreightFlow is a cross-distributor freight coordination and settlement layer bui
                  ▼
           ┌──────────────┐
           │   MultiFlow  │
-          │              │
           │ Propose      │
           │ Validate     │
           │ Explain      │
@@ -28,33 +35,21 @@ FreightFlow is a cross-distributor freight coordination and settlement layer bui
                  │
                  ▼
           ┌──────────────┐
-          │   Settlement │
-          │              │
+          │  Settlement  │
           │ Allocation   │
           │ Ledger       │
           │ Audit trail  │
           └──────────────┘
 ```
 
-## Core Principle
+## Core principle
 
 **FreightFlow supplies the domain model and translates it into a MultiFlow problem.**  
 **Never fork MultiFlow’s core logic.**
 
-```
-FreightFlow
-     │
-     ▼
-MultiFlow
-```
-
 MultiFlow validates the allocation. FreightFlow interprets the validated allocation commercially.
 
-## Objective (v0.1)
-
-Given multiple distributors, their freight obligations, available vehicles, a shared transportation network, and contractual constraints, produce an **admissible shared-load allocation** and an **auditable financial settlement**.
-
-## Killer Demo Loop
+## Killer loop
 
 ```
 3 shipments
@@ -63,51 +58,62 @@ Given multiple distributors, their freight obligations, available vehicles, a sh
       ↓
 MultiFlow validates
       ↓
-cost allocation
+deterministic cost allocation
       ↓
 ledger
       ↓
 auditable settlement
 ```
 
-### Example Output
+## Reference scenario
+
+| Participant | Pallets | Share | Cost |
+|-------------|---------|-------|------|
+| ACME        | 8       | 40%   | $480 |
+| Babel       | 5       | 25%   | $300 |
+| Desert      | 7       | 35%   | $420 |
+| **Total**   | **20**  | **100%** | **$1,200** |
+
+Route: Dallas → Phoenix · Vehicle: Truck-17 · Capacity: 20 pallets · Policy: WEIGHT
+
+## Successful output
 
 ```
-┌─────────────────────────────────────┐
-│ SHARED FREIGHT ALLOCATION           │
-├─────────────────────────────────────┤
-│ Route       Dallas → Phoenix        │
-│ Vehicle     Truck-17                │
-│ Capacity    20 pallets              │
-│ Utilization 100%                    │
-│                                     │
-│ ACME             8 pallets   $480   │
-│ Babel            5 pallets   $300   │
-│ Desert           7 pallets   $420   │
-│                                     │
-│ Total                       $1,200   │
-└─────────────────────────────────────┘
+FREIGHTFLOW SHARED LOAD
+========================================
+Route:       Dallas → Phoenix
+Vehicle:     Truck-17
+Capacity:    20 pallets
+Utilization: 100%
 
-VALIDATED → SETTLED
+ACME          8 pallets     $480.00
+Babel         5 pallets     $300.00
+Desert        7 pallets     $420.00
+Transport cost:             $1200.00
+
+MultiFlow validation:  VALID
+Settlement:            POSTED
+Ledger:                BALANCED
 ```
 
-## Repository Layout
+## Conflict / rejection output
 
 ```
-FreightFlow/
-├── src/freightflow/
-│   ├── domain/          # Distributor, Shipment, Vehicle, Contract, Allocation, Settlement
-│   ├── constraints/     # Capacity, contract, delivery, allocation validators
-│   ├── allocation/      # Load matcher, cost allocator, allocation engine
-│   ├── ledger/          # Append-only domain ledger + audit trail
-│   ├── adapters/        # MultiFlow + ArcGIS adapters
-│   └── api/
-├── examples/            # shared_freight_demo.py
-├── tests/
-└── docs/
+FREIGHTFLOW CONFLICT DEMO
+========================================
+MultiFlow validation: REJECTED
+Code:              CONTRACT-CARRIER-EXCLUSIVITY
+Participant:       Babel
+Shipment:          S-BABEL-004
+Required carrier:  C-22
+Proposed carrier:  TruckCo-17
+Settlement:        NOT CREATED
+Ledger:            UNCHANGED
 ```
 
-## Deterministic Money
+Rejected allocations **never** create financial entries.
+
+## Deterministic money
 
 Financial amounts are never invented by optimizers or LLMs.
 
@@ -118,15 +124,70 @@ allocation basis (WEIGHT | VOLUME | WEIGHTED_COMPOSITE)
         ↓
 participant shares
         ↓
-exact monetary amounts
+exact monetary amounts  (sum == total; remainder assigned deterministically)
 ```
 
-The allocation policy itself is recorded in the settlement and ledger.
+The allocation policy is recorded on every settlement and ledger entry. **No floats.**
 
-## Status
+## Ledger explanation
 
-Scaffolded for v0.1. Implementation order is documented in `docs/ARCHITECTURE.md`.
+> Why does Babel owe $300?
+
+```
+Participant: Babel Supply
+Amount: USD 300.00
+Shipment: S-BABEL-004
+Vehicle: Truck-17
+Route: Dallas → Phoenix
+Allocation: 500 / 2000 = 25%
+Policy: WEIGHT
+Transport cost: USD 1200.00
+Settlement: SET-...
+```
+
+Built from structured facts — not LLM prose.
+
+## ArcGIS integration boundary
+
+```
+ArcGIS service (or fixture)
+        ↓
+ArcGISAdapter.from_network_result(...)
+        ↓
+NetworkRoute   (source='fixture' | 'arcgis')
+        ↓
+FreightFlow allocation
+```
+
+v0.2 ships with a **checked-in deterministic network fixture**. Live ArcGIS routing is not performed and is not claimed. The adapter is the documented entry point for real service responses.
+
+## MultiFlow relationship
+
+```
+FreightFlow domain objects
+        ↓
+MultiFlowAdapter.to_problem / validate
+        ↓
+admissibility (MultiFlow owns this)
+        ↓
+FreightFlow commercial interpretation (cost, ledger, settlement)
+```
+
+No MultiFlow source is copied or forked.
+
+## Quick start
+
+```bash
+git clone https://github.com/TheBabelDragon/FreightFlow.git
+cd FreightFlow
+pip install pydantic pytest
+export PYTHONPATH=src
+
+python examples/shared_freight_demo.py
+python examples/conflict_demo.py
+pytest -q
+```
 
 ## License
 
-See [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
